@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write 
+
 jobs:
   k8s-test:
     name: Kubernetes Test Suite
