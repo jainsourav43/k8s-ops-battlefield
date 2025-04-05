@@ -1,5 +1,3 @@
-# .github/workflows/ci.yml
-
 name: CI Pipeline
 
 on:
@@ -7,38 +5,39 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write 
+
 jobs:
   k8s-test:
     name: Kubernetes Test Suite
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout PR code
       - name: 🧾 Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Install KinD and kubectl
       - name: ⚙️ Install KinD and kubectl
         run: |
-          echo "🔧 Installing KinD..."
           curl -L "https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64" -o kind
           chmod +x kind && sudo mv kind /usr/local/bin/kind
 
-          echo "🔧 Installing kubectl..."
           curl -LO "https://dl.k8s.io/release/v1.32.3/bin/linux/amd64/kubectl"
           chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
 
-          echo "✅ KinD and kubectl installed!"
-
-      # Step 3: Create multi-node KinD cluster using config
       - name: 🏗️ Create KinD cluster
         run: kind create cluster --config cluster/kind-config.yaml
 
-      # Step 4: Verify cluster connectivity
+      - name: 🏷️ Label nodes for ingress
+        run: |
+          for node in $(kubectl get nodes -o name); do
+            kubectl label $node ingress-ready=true --overwrite
+          done
+
       - name: 🔍 Check Kubernetes cluster status
         run: kubectl cluster-info
 
-      # Step 5: Deploy NGINX Ingress Controller
       - name: 🌐 Deploy NGINX Ingress Controller
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.4/deploy/static/provider/kind/deploy.yaml
@@ -48,36 +47,37 @@ jobs:
             --for=condition=ready pod \
             --selector=app.kubernetes.io/component=controller \
             --timeout=300s || {
-              echo "❌ Timed out waiting for ingress controller. Dumping pod status:"
+              echo "❌ Ingress controller failed to become ready. Dumping logs:"
               kubectl get pods -n ingress-nginx -o wide
               kubectl describe pods -n ingress-nginx
               kubectl logs -n ingress-nginx -l app.kubernetes.io/component=controller || true
               exit 1
             }
 
-      # Step 6: Deploy applications and ingress config
       - name: 🚀 Deploy echo services and ingress
         run: kubectl apply -f manifests/
 
-      # Step 7: Wait for application readiness
       - name: ✅ Wait for application deployments to be ready
         run: |
           kubectl wait --for=condition=available --timeout=90s deployment/foo
           kubectl wait --for=condition=available --timeout=90s deployment/bar
 
-      # Step 8: Run load test with k6
       - name: 📊 Run load testing with k6
         run: |
-          curl -s https://downloads.k6.io/releases/0.47.0/k6-v0.47.0-linux-amd64.tar.gz | tar xz
+          echo "📦 Downloading k6..."
+          curl -L -o k6.tar.gz https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz
+          tar -xzf k6.tar.gz
           ./k6-v0.47.0-linux-amd64/k6 run scripts/loadtest.js | tee result.txt
 
-      # Step 9: Post results as a comment on the pull request
+      - name: 📝 Prepare PR comment body
+        run: |
+          echo "## 🚀 Load Testing Report" > body.txt
+          echo '```' >> body.txt
+          cat result.txt >> body.txt
+          echo '```' >> body.txt
+
       - name: 💬 Comment load test results on PR
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🚀 Load Testing Report
-            ```
-            $(cat result.txt)
-            ```
+          body-path: body.txt
