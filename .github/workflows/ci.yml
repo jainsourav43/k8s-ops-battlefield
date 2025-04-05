@@ -62,37 +62,6 @@ jobs:
           kubectl wait --for=condition=available --timeout=90s deployment/foo
           kubectl wait --for=condition=available --timeout=90s deployment/bar
 
-      - name: 🔧 Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-      - name: 📈 Deploy Prometheus via Helm
-        run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          helm install prometheus prometheus-community/prometheus --namespace monitoring --create-namespace
-
-      - name: ⏳ Wait for Prometheus server to be ready
-        run: |
-          kubectl wait --namespace monitoring \
-            --for=condition=ready pod \
-            --selector=app.kubernetes.io/name=prometheus \
-            --timeout=180s
-
-      - name: 📦 Export Prometheus metrics to file
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq curl
-
-          echo "⏳ Port-forwarding Prometheus..."
-          kubectl port-forward -n monitoring svc/prometheus-server 9090:80 &
-          PORT_FORWARD_PID=$!
-          sleep 5
-
-          echo "📊 Querying Prometheus from outside the cluster..."
-          curl -s "http://localhost:9090/api/v1/query?query=up" | jq '.data.result' > metrics.txt
-
-          kill $PORT_FORWARD_PID || true
-
       - name: 📊 Run load testing with k6
         run: |
           echo "📦 Downloading k6..."
@@ -107,10 +76,6 @@ jobs:
           cat result.txt >> body.txt
           echo '```' >> body.txt
           echo "" >> body.txt
-          echo "## 📈 Prometheus Metrics (CPU usage rate)" >> body.txt
-          echo '```' >> body.txt
-          cat metrics.txt >> body.txt
-          echo '```' >> body.txt
 
       - name: 💬 Comment load test results on PR
         uses: peter-evans/create-or-update-comment@v3
