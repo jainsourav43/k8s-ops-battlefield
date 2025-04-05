@@ -76,7 +76,7 @@ jobs:
         run: |
           kubectl wait --namespace monitoring \
             --for=condition=ready pod \
-            --selector=app=prometheus \
+            --selector=app.kubernetes.io/name=prometheus \
             --timeout=180s
 
       - name: 📊 Run load testing with k6
