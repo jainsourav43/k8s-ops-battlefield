@@ -60,7 +60,9 @@ jobs:
 
       - name: 📊 Run load testing with k6
         run: |
-          curl -s https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz | tar xz
+          echo "📦 Downloading k6..."
+          curl -L -o k6.tar.gz https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz
+          tar -xzf k6.tar.gz
           ./k6-v0.47.0-linux-amd64/k6 run scripts/loadtest.js | tee result.txt
 
       - name: 💬 Comment load test results on PR
