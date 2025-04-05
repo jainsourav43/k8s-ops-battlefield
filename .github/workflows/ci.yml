@@ -79,6 +79,14 @@ jobs:
             --selector=app.kubernetes.io/name=prometheus \
             --timeout=180s
 
+      - name: 📦 Export Prometheus metrics to file
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          POD=$(kubectl get pods -n monitoring -l app=prometheus -o jsonpath="{.items[0].metadata.name}")
+          kubectl exec -n monitoring "$POD" -- \
+            curl -s "http://localhost:9090/api/v1/query?query=rate(container_cpu_usage_seconds_total[1m])" \
+            | jq '.data.result' > metrics.txt
+
       - name: 📊 Run load testing with k6
         run: |
           echo "📦 Downloading k6..."
@@ -91,6 +99,11 @@ jobs:
           echo "## 🚀 Load Testing Report" > body.txt
           echo '```' >> body.txt
           cat result.txt >> body.txt
+          echo '```' >> body.txt
+          echo "" >> body.txt
+          echo "## 📈 Prometheus Metrics (CPU usage rate)" >> body.txt
+          echo '```' >> body.txt
+          cat metrics.txt >> body.txt
           echo '```' >> body.txt
 
       - name: 💬 Comment load test results on PR
