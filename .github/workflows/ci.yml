@@ -107,10 +107,6 @@ jobs:
           cat result.txt >> body.txt
           echo '```' >> body.txt
           echo "" >> body.txt
-          echo "## 📈 Prometheus Metrics (CPU usage rate)" >> body.txt
-          echo '```' >> body.txt
-          cat metrics.txt >> body.txt
-          echo '```' >> body.txt
 
       - name: 💬 Comment load test results on PR
         uses: peter-evans/create-or-update-comment@v3
