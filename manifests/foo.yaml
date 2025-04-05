@@ -11,17 +11,21 @@ spec:
     metadata:
       labels:
         app: foo
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
     spec:
       containers:
-      - name: foo
-        image: ealen/echo-server
-        ports:
-        - containerPort: 80
+        - name: foo
+          image: ealen/echo-server
+          ports:
+            - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: foo
+  labels:
+    app: foo
 spec:
   selector:
     app: foo

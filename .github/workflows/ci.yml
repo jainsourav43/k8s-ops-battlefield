@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout code
+      - name: 🗞 Checkout code
         uses: actions/checkout@v3
 
       - name: ⚙️ Install KinD and kubectl
@@ -54,8 +54,12 @@ jobs:
               exit 1
             }
 
-      - name: 🚀 Deploy echo services and ingress
-        run: kubectl apply -f manifests/
+      - name: 🚀 Deploy foo, bar, and ingress
+        run: |
+          kubectl apply -f manifests/configmap.yaml
+          kubectl apply -f manifests/foo.yaml
+          kubectl apply -f manifests/bar.yaml
+          kubectl apply -f manifests/ingress.yaml
 
       - name: ✅ Wait for application deployments to be ready
         run: |
@@ -66,7 +70,7 @@ jobs:
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-      - name: 📈 Deploy Prometheus via Helm
+      - name: 📊 Deploy Prometheus via Helm
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
           helm repo update
@@ -89,7 +93,8 @@ jobs:
           sleep 5
 
           echo "📊 Querying Prometheus from outside the cluster..."
-          curl -s "http://localhost:9090/api/v1/query?query=up" | jq '.data.result' > metrics.txt
+          curl -s "http://localhost:9090/api/v1/query?query=nginx_server_requests_total" \
+            | jq '.data.result' > metrics.txt
 
           kill $PORT_FORWARD_PID || true
 
@@ -107,7 +112,7 @@ jobs:
           cat result.txt >> body.txt
           echo '```' >> body.txt
           echo "" >> body.txt
-          echo "## 📈 Prometheus Metrics (CPU usage rate)" >> body.txt
+          echo "## 📊 Prometheus Metrics (nginx_server_requests_total)" >> body.txt
           echo '```' >> body.txt
           cat metrics.txt >> body.txt
           echo '```' >> body.txt
