@@ -69,12 +69,15 @@ jobs:
           tar -xzf k6.tar.gz
           ./k6-v0.47.0-linux-amd64/k6 run scripts/loadtest.js | tee result.txt
 
+      - name: 📝 Prepare PR comment body
+        run: |
+          echo "## 🚀 Load Testing Report" > body.txt
+          echo '```' >> body.txt
+          cat result.txt >> body.txt
+          echo '```' >> body.txt
+
       - name: 💬 Comment load test results on PR
         uses: peter-evans/create-or-update-comment@v3
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ## 🚀 Load Testing Report
-            ```
-            $(cat result.txt)
-            ```
+          body-path: body.txt
