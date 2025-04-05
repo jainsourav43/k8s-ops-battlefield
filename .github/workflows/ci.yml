@@ -81,11 +81,17 @@ jobs:
 
       - name: 📦 Export Prometheus metrics to file
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          POD=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus -o jsonpath="{.items[0].metadata.name}")
-          kubectl exec -n monitoring "$POD" -- \
-            curl -s "http://localhost:9090/api/v1/query?query=up" \
-            | jq '.data.result' > metrics.txt
+          sudo apt-get update && sudo apt-get install -y jq curl
+
+          echo "⏳ Port-forwarding Prometheus..."
+          kubectl port-forward -n monitoring svc/prometheus-server 9090:80 &
+          PORT_FORWARD_PID=$!
+          sleep 5
+
+          echo "📊 Querying Prometheus from outside the cluster..."
+          curl -s "http://localhost:9090/api/v1/query?query=up" | jq '.data.result' > metrics.txt
+
+          kill $PORT_FORWARD_PID || true
 
       - name: 📊 Run load testing with k6
         run: |
