@@ -23,7 +23,11 @@ jobs:
           curl -L "https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64" -o kind
           chmod +x kind && sudo mv kind /usr/local/bin/kind
 
+<<<<<<< Updated upstream
           curl -LO "https://dl.k8s.io/release/v1.32.3/bin/linux/amd64/kubectl"
+=======
+          curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+>>>>>>> Stashed changes
           chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
 
       - name: 🏗️ Create KinD cluster
@@ -69,6 +73,7 @@ jobs:
           tar -xzf k6.tar.gz
           ./k6-v0.47.0-linux-amd64/k6 run scripts/loadtest.js | tee result.txt
 
+<<<<<<< Updated upstream
       - name: 📝 Prepare PR comment body
         run: |
           echo "## 🚀 Load Testing Report" > body.txt
@@ -76,6 +81,8 @@ jobs:
           cat result.txt >> body.txt
           echo '```' >> body.txt
 
+=======
+>>>>>>> Stashed changes
       - name: 💬 Comment load test results on PR
         uses: peter-evans/create-or-update-comment@v3
         with:
